@@ -18,3 +18,10 @@
     - kubelet
     - kubeadm
     - kubectl
+
+- name: Enable and run docker
+  systemd:
+    enabled: yes
+    state: started
+    name: docker
+  become: yes
