@@ -1,0 +1,36 @@
+- name: Check if kubernetes master is running
+  shell: "kubectl cluster-info"
+  register: kube_master_running
+  ignore_errors: yes
+
+- name: Initialize master
+  shell: "kubeadm init --pod-network-cidr=10.244.0.0/16"
+  register: kube_init_output
+  become: yes
+  when: kube_master_running.rc == 1
+
+- name: Get join kubernetes cluster token
+  debug: 
+    msg: "{{ kube_init_output.stdout | regex_search('(kubeadm join.*)') }}"
+  when: kube_master_running.rc == 1
+  
+- name: Configure flannel pod network settings
+  block:
+    - file:
+        path: "{{ ansible_facts['user_dir'] }}/.kube"
+        state: directory
+    - copy:
+        dest: "{{ ansible_facts['user_dir'] }}/.kube/config"
+        src: /etc/kubernetes/admin.conf
+        remote_src: yes
+        owner: "{{ ansible_facts['user_id'] }}" 
+        group: "{{ ansible_facts['user_gid'] }}"
+    - sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: 1
+  when: kube_master_running.rc == 1
+  become: yes
+
+- name: Apply flannel pod network
+  shell: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+  when: kube_master_running.rc == 1
