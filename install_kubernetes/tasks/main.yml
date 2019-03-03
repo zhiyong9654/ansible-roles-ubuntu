@@ -18,6 +18,7 @@
     - kubelet
     - kubeadm
     - kubectl
+  become: yes
 
 - name: Enable and run docker
   systemd:
