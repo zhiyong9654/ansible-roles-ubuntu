@@ -20,9 +20,19 @@
     - kubectl
   become: yes
 
+# Swap is not supported by kubernetes
+- name: Disable swap
+  block:
+    - shell: 'swapoff -a'
+    - lineinfile:
+        path: /etc/fstab
+        state: absent
+        regexp: 'swap'
+  become: yes
+
 - name: Enable and run docker
   systemd:
     enabled: yes
     state: started
-    name: docker
+    name: docker.service
   become: yes
